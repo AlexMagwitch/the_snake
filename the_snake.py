@@ -200,7 +200,7 @@ class Apple(GameObject):
             self.randomize_position(snake_positions)
         """
         Если не возвращать значение self.position, то поялвяется
-        ошибка TypeError: 'NoneType' object is not subscriptable.
+        ошибка TypeError: Argument must be rect style object.
         """
         return self.position
 
