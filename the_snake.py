@@ -1,6 +1,5 @@
+"""Запускает игру 'Змейка'."""
 from random import choice, randint
-"""Модуль random генерирует случайные переменные."""
-
 import pygame as pg
 
 # Инициализация pg:
@@ -75,10 +74,13 @@ class Snake(GameObject):
     def __init__(self):
         """Инициализирует атрибуты змейки."""
         super().__init__()
-        self.reset()
+        self.length = 1
+        self.last = None
+        self.body_color = SNAKE_COLOR
         self.direction = RIGHT
         self.next_direction = None
-        self.body_color = SNAKE_COLOR
+        self.positions = [self.position]
+        self.head_position = self.get_head_position()
 
     def update_direction(self, next_direction):
         """Обновляет направление движения змейки.
@@ -96,34 +98,21 @@ class Snake(GameObject):
         Добавляет новую голову в начало списка positions
         и удаляет последний элемент, если длина змейки не увеличилась.
         """
-        self.head_position = self.get_head_position()
+        head_position_x, head_position_y = self.head_position
+        direction_x, direction_y = self.direction
 
-        head_position_x = self.head_position[0]
-        head_position_y = self.head_position[1]
-
-        direction_x = self.direction[0]
-        direction_y = self.direction[1]
-
-        """
-        Следующее условие высчитывает координаты новой головы змейки.
-        Для начала оно проверяет значение переменной direction_y.
-        Если direction_y равно 0, то это значит,
-        что позиция головы змейки обновляется по оси X,
-        учитывая значение переменной direction_x.
-        А оно в свою очередь равно либо 1, либо -1,
-        то есть мы можем просто умножать на direction_x не задумываясь о том,
-        движется змейка влево или вправо,
-        потому что автоматически получим значение для движения в нужную сторону
-        Если direction_y не равно 0, то мы делаем все тоже самое но по оси Y.
-        При этом координаты обновляются таким образом,
-        чтобы объект оставался в пределах экрана.
-
-        P.S. Расписал этот огромный комментарий,
-        потому что мне кажется что условие не слишком интуитивно понятное
-        и сложно читаемое, как минимум если сравнивать с предыдущей версией.
-        И как я понял в таких случах надо писать комментарии-обоснования.
-        Зато как мне кажется получилась прикольная оптимизация кода.
-        """
+        # Следующее условие высчитывает координаты новой головы змейки.
+        # Для начала оно проверяет значение переменной direction_y.
+        # Если direction_y равно 0, то это значит,
+        # что позиция головы змейки обновляется по оси X,
+        # учитывая значение переменной direction_x.
+        # А оно в свою очередь равно либо 1, либо -1,
+        # то есть мы можем просто умножать на direction_x не задумываясь о том,
+        # движется змейка влево или вправо, потому что
+        # автоматически получим значение для движения в нужную сторону
+        # Если direction_y не равно 0, то мы делаем все тоже самое но по оси Y.
+        # При этом координаты обновляются таким образом,
+        # чтобы объект оставался в пределах экрана.
         if direction_y == 0:
             new_head_position_x = head_position_x + direction_x * GRID_SIZE
             self.head_position = (new_head_position_x % SCREEN_WIDTH,
@@ -142,9 +131,6 @@ class Snake(GameObject):
         else:
             self.last = None
 
-        if self.head_position in self.positions[1:]:
-            self.reset()
-
     def draw(self):
         """Отрисовывает змейку на экране, затирая след."""
         # Отрисовка головы змейки
@@ -158,19 +144,8 @@ class Snake(GameObject):
             pg.draw.rect(screen, BOARD_BACKGROUND_COLOR, last_rect)
 
     def get_head_position(self):
-        """Возвращает позицию головы змейки"""
+        """Возвращает позицию головы змейки."""
         return self.positions[0]
-
-    def reset(self):
-        """Сбрасывает змейку в начальное состояние.
-
-        Например после столкновения с собой.
-        """
-        self.length = 1
-        self.positions = [self.position]
-        self.direction = choice([RIGHT, LEFT, UP, DOWN])
-        self.last = None
-        screen.fill(BOARD_BACKGROUND_COLOR)
 
 
 class Apple(GameObject):
@@ -185,30 +160,28 @@ class Apple(GameObject):
         :param snake_positions: Список клеток занятых телом змейки.
         :param body_color: Цвет тела яблока. По умолчанию равен APPLE_COLOR.
         """
+        self.randomize_position(snake_positions)
         self.body_color = body_color
-        self.position = self.randomize_position(snake_positions)
 
-    def randomize_position(self, snake_positions):
+    def randomize_position(self, snake_positions=SCREEN_CENTER):
         """Устанавливает случайное положение яблока на игровом поле.
 
         :param snake_positions: Список клеток занятых телом змейки.
         """
-        self.x_coordinate = randint(0, GRID_WIDTH) * GRID_SIZE % SCREEN_WIDTH
-        self.y_coordinate = randint(0, GRID_HEIGHT) * GRID_SIZE % SCREEN_HEIGHT
-        self.position = (self.x_coordinate, self.y_coordinate)
-        if self.position in snake_positions:
-            self.randomize_position(snake_positions)
-        """
-        Если не возвращать значение self.position, то поялвяется
-        ошибка TypeError: Argument must be rect style object.
-        """
-        return self.position
+        while True:
+            self.x_coordinate = (randint(0, SCREEN_WIDTH)
+                                 * GRID_SIZE % SCREEN_WIDTH)
+            self.y_coordinate = (randint(0, GRID_HEIGHT)
+                                 * GRID_SIZE % SCREEN_HEIGHT)
+
+            self.position = (self.x_coordinate, self.y_coordinate)
+
+            if self.position not in snake_positions:
+                break
 
     def draw(self):
         """Отрисовывает яблоко на игровой поверхности."""
-        rect = pg.Rect(self.position,
-                       (GRID_SIZE, GRID_SIZE)
-                       )
+        rect = pg.Rect((self.position), (GRID_SIZE, GRID_SIZE))
         pg.draw.rect(screen, self.body_color, rect)
         pg.draw.rect(screen, BORDER_COLOR, rect, 1)
 
@@ -238,6 +211,19 @@ def handle_keys(game_object):
             game_object.next_direction = new_direction
 
 
+def reset(snake_object, apple_object):
+    """Сбрасывает всю игру в начальное состояние."""
+    screen.fill(BOARD_BACKGROUND_COLOR)
+
+    snake_object.length = 1
+    snake_object.positions = [snake_object.position]
+    snake_object.direction = choice([RIGHT, LEFT, UP, DOWN])
+    snake_object.last = None
+    snake_object.head_position = snake_object.get_head_position()
+
+    apple_object.randomize_position(snake_object.positions)
+
+
 def main():
     """Основной цикл игры.
 
@@ -245,9 +231,9 @@ def main():
     змейка обрабатывает нажатия клавиш и двигается в соответствии
     с выбранным направлением.
     """
+    screen.fill(BOARD_BACKGROUND_COLOR)
     snake = Snake()
     apple = Apple(snake.positions)
-    screen.fill(BOARD_BACKGROUND_COLOR)
 
     while True:
         clock.tick(SPEED)
@@ -255,6 +241,10 @@ def main():
         handle_keys(snake)
         snake.update_direction(snake.next_direction)
         snake.move()
+
+        if (snake.head_position in
+           snake.positions[1:] or snake.head_position == snake.last):
+            reset(snake, apple)
 
         if snake.get_head_position() == apple.position:
             snake.length += 1
