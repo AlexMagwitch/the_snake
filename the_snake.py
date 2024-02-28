@@ -74,13 +74,9 @@ class Snake(GameObject):
     def __init__(self):
         """Инициализирует атрибуты змейки."""
         super().__init__()
-        self.length = 1
-        self.last = None
-        self.body_color = SNAKE_COLOR
+        self.reset()
         self.direction = RIGHT
-        self.next_direction = None
-        self.positions = [self.position]
-        self.head_position = self.get_head_position()
+        self.body_color = SNAKE_COLOR
 
     def update_direction(self, next_direction):
         """Обновляет направление движения змейки.
@@ -147,6 +143,15 @@ class Snake(GameObject):
         """Возвращает позицию головы змейки."""
         return self.positions[0]
 
+    def reset(self):
+        """Сбрасывает змейку в начальное состояние."""
+        self.length = 1
+        self.positions = [self.position]
+        self.direction = choice([RIGHT, LEFT, UP, DOWN])
+        self.last = None
+        self.head_position = self.get_head_position()
+        self.next_direction = None
+
 
 class Apple(GameObject):
     """Класс, описывающий яблоко и действия с ним.
@@ -211,19 +216,6 @@ def handle_keys(game_object):
             game_object.next_direction = new_direction
 
 
-def reset(snake_object, apple_object):
-    """Сбрасывает всю игру в начальное состояние."""
-    screen.fill(BOARD_BACKGROUND_COLOR)
-
-    snake_object.length = 1
-    snake_object.positions = [snake_object.position]
-    snake_object.direction = choice([RIGHT, LEFT, UP, DOWN])
-    snake_object.last = None
-    snake_object.head_position = snake_object.get_head_position()
-
-    apple_object.randomize_position(snake_object.positions)
-
-
 def main():
     """Основной цикл игры.
 
@@ -244,7 +236,9 @@ def main():
 
         if (snake.head_position in
            snake.positions[1:] or snake.head_position == snake.last):
-            reset(snake, apple)
+            screen.fill(BOARD_BACKGROUND_COLOR)
+            snake.reset()
+            apple.randomize_position(snake.positions)
 
         if snake.get_head_position() == apple.position:
             snake.length += 1
